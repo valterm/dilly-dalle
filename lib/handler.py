@@ -1,6 +1,7 @@
 from telegram import Update,User
 from telegram.ext import Updater,CallbackContext
 import .dalle
+import .gpt
 from .globals import *
 import threading
 import requests
@@ -61,7 +62,7 @@ class RequestHandler:
 
     def __generate_handler(self, update: Update, context: CallbackContext):
         prompt = update.message.text
-        prompt = self.__strip_input(prompt, ['picgen', f"@{bot_username}"])
+        prompt = self.__strip_input(prompt, ['picgen', f"@{BOT_USERNAME}"])
 
         # Generate image with Dalle class
         dalle = Dalle(self.openai_api_key)
@@ -87,11 +88,64 @@ class RequestHandler:
         # Send image
         self.__send_image_message(update, context, image)
     
-    # Create generate command handler
+    def __description_handler(self, update: Update, context: CallbackContext):
+        prompt = update.message.text
+        prompt = self.__strip_input(prompt, ['describe', f"@{BOT_USERNAME}"])
+
+        # Generate description with GPT class
+        gpt = GPT(self.openai_api_key)
+        description = gpt.generate_description(prompt)
+
+        # Send description
+        self.__send_text_message(update, context, description)
+    
+    def __rephrase_handler(self, update: Update, context: CallbackContext):
+        prompt = update.message.text
+        prompt = self.__strip_input(prompt, ['rephrase', f"@{BOT_USERNAME}"])
+
+        # Rephrase prompt with GPT class
+        gpt = GPT(self.openai_api_key)
+        rephrased_prompt = gpt.rephrase_prompt(prompt)
+
+        # Send rephrased prompt
+        self.__send_text_message(update, context, rephrased_prompt)
+    
+    def __help_handler(self, update: Update, context: CallbackContext):
+        # Create help message describing the commands
+        help_message = f"Hi {self.__get_username(update)}! I'm {BOT_NAME} and I can generate images from text prompts. Here are the commands I understand:\n\n"
+        help_message += f"1. /picgen <text prompt> - Generates an image from a text prompt.\n"
+        help_message += f"2. /variation <image> - Generates an image variation from an image.\n"
+        help_message += f"3. /describe <text prompt> - Generates a description from a text prompt.\n"
+        help_message += f"4. /rephrase <text prompt> - Rephrases a text prompt.\n"
+        help_message += f"5. /help - Displays this help message.\n\n"
+        help_message += f"Please note that I'm still in beta and I may not work as expected. If you encounter any issues, please report them to on github @{GITHUB_REPO}.\n"
+        
+        # Send help message
+        self.__send_text_message(update, context, help_message)
+    
+    def __start_handler(self, update: Update, context: CallbackContext):
+        # Create start message
+        start_message = f"Hi {self.__get_username(update)}! I'm {BOT_NAME} and I can generate images from text prompts. Send /help to see the commands I understand.\n\n"
+        start_message += f"Please note that I'm still in beta and I may not work as expected. If you encounter any issues, please report them to on github @{GITHUB_REPO}.\n"
+
+        # Send start message
+        self.__send_text_message(update, context, start_message)
+
+    # Create command handlers
+    def start_command_handler(self, update: Update, context: CallbackContext):
+        threading.Thread(target=self.__start_handler, args=(update, context)).start()
+
+    def help_command_handler(self, update: Update, context: CallbackContext):
+        threading.Thread(target=self.__help_handler, args=(update, context)).start()
+
     def generate_command_handler(self, update: Update, context: CallbackContext):
         threading.Thread(target=self.__generate_handler, args=(update, context)).start()
     
     def variation_command_handler(self, update: Update, context: CallbackContext):
         threading.Thread(target=self.__variation_handler, args=(update, context)).start()
 
-        
+    def description_command_handler(self, update: Update, context: CallbackContext):
+        threading.Thread(target=self.__description_handler, args=(update, context)).start()
+
+    def rephrase_command_handler(self, update: Update, context: CallbackContext):
+        threading.Thread(target=self.__rephrase_handler, args=(update, context)).start()
