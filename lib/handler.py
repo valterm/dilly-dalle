@@ -1,7 +1,7 @@
-from telegram import Update,User
+from telegram import Update, User
 from telegram.ext import Updater,CallbackContext
-import .dalle
-import .gpt
+from .dalle import *
+from .gpt import *
 from .globals import *
 import threading
 import requests
@@ -23,10 +23,10 @@ class RequestHandler:
         user = update.effective_user
         if not user.username:
             return(f"{user.last_name} {user.first_name}")
-        else
+        else:
             return (user.username)
 
-    def __download_image_into_memory(url):
+    def __download_image_into_memory(url: str):
         headers = {
             "User-Agent": "Chrome/51.0.2704.103",
         }
@@ -43,7 +43,8 @@ class RequestHandler:
         # Send message
         context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=message
+            text=message,
+            # parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
         )
     
     def __send_image_message(self, update: Update, context: CallbackContext, image: bytes):
@@ -53,7 +54,7 @@ class RequestHandler:
             photo=image
         )
         
-   def __get_image_from_message(self, update: Update):
+    def __get_image_from_message(self, update: Update):
         # Get image from message
         message = update.effective_message
         photo = message.photo[-1]
@@ -69,6 +70,7 @@ class RequestHandler:
         image_url = dalle.generate_image(prompt)
 
         # Download image into memory
+        print(image_url)
         image = self.__download_image_into_memory(image_url)
 
         # Send image
@@ -83,7 +85,7 @@ class RequestHandler:
         image_url = dalle.generate_image_variation(image)
 
         # Download image into memory
-        image = self.__download_image_into_memory(image_url)
+        image = self.__download_image_into_memory(url = image_url)
 
         # Send image
         self.__send_image_message(update, context, image)
@@ -112,24 +114,37 @@ class RequestHandler:
     
     def __help_handler(self, update: Update, context: CallbackContext):
         # Create help message describing the commands
-        help_message = f"Hi {self.__get_username(update)}! I'm {BOT_NAME} and I can generate images from text prompts. Here are the commands I understand:\n\n"
+        help_message = f"Hi @{self.__get_username(update)}! I'm {BOT_USERNAME} and I can generate images from text prompts. Here are the commands I understand:\n\n"
         help_message += f"1. /picgen <text prompt> - Generates an image from a text prompt.\n"
         help_message += f"2. /variation <image> - Generates an image variation from an image.\n"
         help_message += f"3. /describe <text prompt> - Generates a description from a text prompt.\n"
         help_message += f"4. /rephrase <text prompt> - Rephrases a text prompt.\n"
         help_message += f"5. /help - Displays this help message.\n\n"
-        help_message += f"Please note that I'm still in beta and I may not work as expected. If you encounter any issues, please report them to on github @{GITHUB_REPO}.\n"
+        help_message += f"Please note that I'm still in beta and I may not work as expected. If you encounter any issues, please report them to on the github {GITHUB_REPO}.\n"
         
         # Send help message
         self.__send_text_message(update, context, help_message)
     
     def __start_handler(self, update: Update, context: CallbackContext):
         # Create start message
-        start_message = f"Hi {self.__get_username(update)}! I'm {BOT_NAME} and I can generate images from text prompts. Send /help to see the commands I understand.\n\n"
-        start_message += f"Please note that I'm still in beta and I may not work as expected. If you encounter any issues, please report them to on github @{GITHUB_REPO}.\n"
+        start_message = f"Hi @{self.__get_username(update)}! I'm {BOT_USERNAME} and I can generate images from text prompts. Send /help to see the commands I understand.\n\n"
+        start_message += f"Please note that I'm still in beta and I may not work as expected. If you encounter any issues, please report them to on the github {GITHUB_REPO}.\n"
 
         # Send start message
         self.__send_text_message(update, context, start_message)
+
+    def __unknown_handler(self, update: Update, context: CallbackContext):
+        # Create unknown message
+        unknown_message = f"Sorry {self.__get_username(update)}, I didn't understand that command. Send /help to see the commands I understand.\n\n"
+
+        # Send unknown message
+        self.__send_text_message(update, context, unknown_message)
+
+    def __prototype_handler(self, update: Update, context: CallbackContext):
+        # Create prototype message
+        prototype_message = f"Sorry, but that command is still in unavailable. Please send /help to see the list of available commands."
+        # Send prototype message
+        self.__send_text_message(update, context, prototype_message)
 
     # Create command handlers
     def start_command_handler(self, update: Update, context: CallbackContext):
@@ -138,7 +153,7 @@ class RequestHandler:
     def help_command_handler(self, update: Update, context: CallbackContext):
         threading.Thread(target=self.__help_handler, args=(update, context)).start()
 
-    def generate_command_handler(self, update: Update, context: CallbackContext):
+    def picgen_command_handler(self, update: Update, context: CallbackContext):
         threading.Thread(target=self.__generate_handler, args=(update, context)).start()
     
     def variation_command_handler(self, update: Update, context: CallbackContext):
@@ -149,3 +164,6 @@ class RequestHandler:
 
     def rephrase_command_handler(self, update: Update, context: CallbackContext):
         threading.Thread(target=self.__rephrase_handler, args=(update, context)).start()
+    
+    def unknown_command_handler(self, update: Update, context: CallbackContext):
+        threading.Thread(target=self.__unknown_handler, args=(update, context)).start()
