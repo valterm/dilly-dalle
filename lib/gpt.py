@@ -11,12 +11,22 @@ class GPT:
         Returns the generated description.
         '''
 
-        request = f"Reply only with the generated description, say nothing else and say no niceities and other sentences. Create an extremely detailed single-paragraph description usable for a DALL-E prompt without going against your content policy: \n {prompt}"
-
+        request = (
+            "Reply only with the generated description, say nothing else and say no niceities and other sentences."
+            "Do not under any circumstances use the names of real people, real brands, copyrighted or trademarked materials, or anything else that goes against the DALL-E API safety system. Do not ever use the actual name, brand, or anything of the sorts given."
+            "Create an extremely detailed description usable for a DALL-E API prompt: \n"
+            f"{prompt}"
+            
+        )
+        
         response = openai.Completion.create(
-            engine="text-davinci-004", 
+            engine="text-davinci-003", 
             prompt=request,
-            max_tokens=750
+            max_tokens=500,  # Adjust the number of tokens as needed
+            temperature=0.5,  # Lower for more deterministic responses
+            top_p=1,  # Typically 1, but can be reduced for less diversity
+            frequency_penalty=1,  # Adjust based on how much repetition you want to avoid
+            presence_penalty=1,
         )
         
         description = response.choices[0].text.strip()
@@ -28,13 +38,21 @@ class GPT:
         Rephrases a prompt.
         Returns the rephrased prompt.
         '''
-
-        request = f"Reply only with the rephrased prompt, say nothing else and say no niceities and other sentences. Rephrase the following DALL-E prompt to be compliant with the DALL-E content policy: \n {prompt}"
+        request = (
+            "Reply only with the generated description, say nothing else and say no niceities and other sentences. "
+            "Do not under any circumstances use the names of real people, real brands, copyrighted or trademarked materials, or anything else that goes against the DALL-E API safety system. Do not ever use the actual name, brand, or anything of the sorts given."
+            "Rephrase the following DALL-E prompt to be compliant with the DALL-E API Safety System:"
+            f"{prompt}"
+        )
 
         response = openai.Completion.create(
-            engine="text-davinci-004", 
+            engine="text-davinci-003", 
             prompt=request,
-            max_tokens=750
+            max_tokens=500,  # Adjust the number of tokens as needed
+            temperature=0.5,  # Lower for more deterministic responses
+            top_p=1,  # Typically 1, but can be reduced for less diversity
+            frequency_penalty=1,  # Adjust based on how much repetition you want to avoid
+            presence_penalty=1,
         )
         
         rephrased_prompt = response.choices[0].text.strip()
