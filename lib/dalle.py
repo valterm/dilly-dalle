@@ -16,7 +16,7 @@ class Dalle:
             size=size
         )
         image_url = r['data'][0]['url']
-        return(img_url)
+        return(image_url)
     
     def generate_image_variation(self, image):
         '''
@@ -29,4 +29,4 @@ class Dalle:
             size="256x256"
         )
         image_url = r['data'][0]['url']
-        return(img_url)
+        return(image_url)
