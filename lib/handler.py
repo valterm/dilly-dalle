@@ -26,7 +26,9 @@ class RequestHandler:
         else:
             return (user.username)
 
-    def __download_image_into_memory(url: str):
+    def __download_image_into_memory(self, *args, url=None):
+        if not url and args:
+            url = args[0]
         headers = {
             "User-Agent": "Chrome/51.0.2704.103",
         }
@@ -44,6 +46,7 @@ class RequestHandler:
         context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=message,
+            # parse_mode="MarkdownV2"
             # parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
         )
     
@@ -85,7 +88,7 @@ class RequestHandler:
         image_url = dalle.generate_image_variation(image)
 
         # Download image into memory
-        image = self.__download_image_into_memory(url = image_url)
+        image = self.__download_image_into_memory(image_url)
 
         # Send image
         self.__send_image_message(update, context, image)
