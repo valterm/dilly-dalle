@@ -1,11 +1,19 @@
+import logging
+from lib.globals import LOGLEVEL
+logging.basicConfig(level=LOGLEVEL, format='%(asctime)s - %(levelname)s - %(message)s')
+
 import openai
 
 class GPT:
+    logging.debug('Entering: __init__')
     def __init__(self, api_key):
+        logging.debug('Entering __init__')
         openai.api_key = api_key
     
     # Create a method to generate a dalle-promptable description of the submitted text prompt, that otherwise would not be dalle-promptable
+    logging.debug('Entering: generate_description')
     def generate_description(self, prompt):
+        logging.debug('Entering generate_description')
         '''
         Generates a description from a prompt.
         Returns the generated description.
@@ -33,7 +41,9 @@ class GPT:
         return(description)
     
     # Create a method to rephrase a submitted text prompt, that otherwise would not be dalle-promptable
+    logging.debug('Entering: rephrase_prompt')
     def rephrase_prompt(self, prompt):
+        logging.debug('Entering rephrase_prompt')
         '''
         Rephrases a prompt.
         Returns the rephrased prompt.

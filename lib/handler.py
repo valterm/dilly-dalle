@@ -13,6 +13,7 @@ class RequestHandler:
         self.openai_api_key = openai_api_key
 
     def __strip_input(self, input: str, experssions: list):
+        logging.debug('Entering: __strip_input')
         # Strip input
         for e in experssions:
             input = input.replace(e, "")
@@ -27,6 +28,7 @@ class RequestHandler:
             return (user.username)
 
     def __download_image_into_memory(self, *args, url=None):
+        logging.debug('Entering: __download_image_into_memory')
         if not url and args:
             url = args[0]
         headers = {
@@ -42,6 +44,7 @@ class RequestHandler:
             return 1
     
     def __send_text_message(self, update: Update, context: CallbackContext, message: str):
+        logging.debug('Entering: __send_text_message')
         # Send message
         context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -49,15 +52,20 @@ class RequestHandler:
             # parse_mode="MarkdownV2"
             # parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
         )
+        logging.debug('Exiting: __send_text_message')
     
     def __send_image_message(self, update: Update, context: CallbackContext, image: bytes):
+        logging.debug('Entering: __send_image_message')
         # Send image
         context.bot.send_photo(
             chat_id=update.effective_chat.id,
             photo=image
         )
+        logging.debug('Exiting: __send_image_message')
+
         
     def __get_image_from_message(self, update: Update):
+        logging.debug('Entering: __get_image_from_message')
         # Get image from message
         message = update.effective_message
         photo = message.photo[-1]
@@ -65,6 +73,8 @@ class RequestHandler:
         return image
 
     def __generate_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: __generate_handler')
+
         prompt = update.message.text
         prompt = self.__strip_input(prompt, ['picgen', f"@{BOT_USERNAME}"])
 
@@ -78,10 +88,13 @@ class RequestHandler:
 
         # Send image
         self.__send_image_message(update, context, image)
+        logging.debug('Exiting: __generate_handler')
 
     def __variation_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: __variation_handler')
         # Get image from message
         image = self.__get_image_from_message(update)
+        logging.debug(f"Image: {image}")
 
         # Generate image variation with Dalle class
         dalle = Dalle(self.openai_api_key)
@@ -92,8 +105,11 @@ class RequestHandler:
 
         # Send image
         self.__send_image_message(update, context, image)
+        logging.debug('Exiting: __variation_handler')
     
     def __description_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: __description_handler')
+
         prompt = update.message.text
         prompt = self.__strip_input(prompt, ['describe', f"@{BOT_USERNAME}"])
 
@@ -103,8 +119,12 @@ class RequestHandler:
 
         # Send description
         self.__send_text_message(update, context, description)
+
+        logging.debug('Exiting: __description_handler')
     
     def __rephrase_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: __rephrase_handler')
+
         prompt = update.message.text
         prompt = self.__strip_input(prompt, ['rephrase', f"@{BOT_USERNAME}"])
 
@@ -114,8 +134,11 @@ class RequestHandler:
 
         # Send rephrased prompt
         self.__send_text_message(update, context, rephrased_prompt)
+
+        logging.debug('Exiting: __rephrase_handler')
     
     def __help_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: __help_handler')
         # Create help message describing the commands
         help_message = f"Hi @{self.__get_username(update)}! I'm {BOT_USERNAME} and I can generate images from text prompts. Here are the commands I understand:\n\n"
         help_message += f"1. /picgen <text prompt> - Generates an image from a text prompt.\n"
@@ -127,8 +150,11 @@ class RequestHandler:
         
         # Send help message
         self.__send_text_message(update, context, help_message)
+
+        logging.debug('Exiting: __help_handler')
     
     def __start_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: __start_handler')
         # Create start message
         start_message = f"Hi @{self.__get_username(update)}! I'm {BOT_USERNAME} and I can generate images from text prompts. Send /help to see the commands I understand.\n\n"
         start_message += f"Please note that I'm still in beta and I may not work as expected. If you encounter any issues, please report them to on the github {GITHUB_REPO}.\n"
@@ -137,6 +163,7 @@ class RequestHandler:
         self.__send_text_message(update, context, start_message)
 
     def __unknown_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: __unknown_handler')
         # Create unknown message
         unknown_message = f"Sorry {self.__get_username(update)}, I didn't understand that command. Send /help to see the commands I understand.\n\n"
 
@@ -144,6 +171,7 @@ class RequestHandler:
         self.__send_text_message(update, context, unknown_message)
 
     def __prototype_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: __prototype_handler')
         # Create prototype message
         prototype_message = f"Sorry, but that command is still in unavailable. Please send /help to see the list of available commands."
         # Send prototype message
@@ -151,22 +179,36 @@ class RequestHandler:
 
     # Create command handlers
     def start_command_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: start_command_handler')
         threading.Thread(target=self.__start_handler, args=(update, context)).start()
+        logging.debug('Exiting: start_command_handler')
 
     def help_command_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: help_command_handler')
         threading.Thread(target=self.__help_handler, args=(update, context)).start()
+        logging.debug('Exiting: help_command_handler')
 
     def picgen_command_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: picgen_command_handler')
         threading.Thread(target=self.__generate_handler, args=(update, context)).start()
+        logging.debug('Exiting: picgen_command_handler')
     
     def variation_command_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: variation_command_handler')
         threading.Thread(target=self.__variation_handler, args=(update, context)).start()
+        logging.debug('Exiting: variation_command_handler')
 
     def description_command_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: description_command_handler')
         threading.Thread(target=self.__description_handler, args=(update, context)).start()
+        logging.debug('Exiting: description_command_handler')
 
     def rephrase_command_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: rephrase_command_handler')
         threading.Thread(target=self.__rephrase_handler, args=(update, context)).start()
+        logging.debug('Exiting: rephrase_command_handler')
     
     def unknown_command_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: unknown_command_handler')
         threading.Thread(target=self.__unknown_handler, args=(update, context)).start()
+        logging.debug('Exiting: unknown_command_handler')

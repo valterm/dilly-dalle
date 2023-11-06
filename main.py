@@ -1,10 +1,16 @@
+import logging
+from lib.globals import LOGLEVEL
+logging.basicConfig(level=LOGLEVEL, format='%(asctime)s - %(levelname)s - %(message)s')
+
 #!/usr/bin/env python3
 import lib.handler as handler
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
 from telegram import Update, User
 import lib.globals as g
 
+logging.debug('Entering: main')
 def main():
+    logging.debug('Entering main')
     # Create handler
     command_handler = handler.RequestHandler(openai_api_key=g.OPENAI_API_KEY)
 
@@ -36,5 +42,7 @@ def main():
 
 
 
+logging.exception('Exception caught:')
+logging.exception('Exception caught')
 if __name__ == '__main__':
     main()
