@@ -6,6 +6,7 @@ from .globals import *
 import threading
 import requests
 from io import BytesIO
+from openai.error import InvalidRequestError
 
 # Create RequestHandler class
 class RequestHandler:
@@ -54,12 +55,35 @@ class RequestHandler:
         )
         logging.debug('Exiting: __send_text_message')
     
-    def __send_image_message(self, update: Update, context: CallbackContext, image: bytes):
+    def __send_text_reply(self, update: Update, context: CallbackContext, message: str):
+        logging.debug('Entering: __send_reply_text')
+        # Send message
+        update.message.reply_text(
+            text=message,
+            reply_to_message_id=update.message.message_id
+            # parse_mode="MarkdownV2"
+            # parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
+        )
+        logging.debug('Exiting: __send_reply_text')
+    
+    def __send_image_message(self, update: Update, context: CallbackContext, image: bytes, caption=None):
         logging.debug('Entering: __send_image_message')
         # Send image
         context.bot.send_photo(
             chat_id=update.effective_chat.id,
-            photo=image
+            photo=image,
+            caption=caption
+        )
+        logging.debug('Exiting: __send_image_message')
+
+    def __send_image_reply(self, update: Update, context: CallbackContext, image: bytes, caption=None):
+        logging.debug('Entering: __send_image_message')
+        # Send image
+        context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=image,
+            caption=caption,
+            reply_to_message_id=update.message.message_id,
         )
         logging.debug('Exiting: __send_image_message')
 
@@ -76,35 +100,58 @@ class RequestHandler:
         logging.debug('Entering: __generate_handler')
 
         prompt = update.message.text
-        prompt = self.__strip_input(prompt, ['picgen', f"@{BOT_USERNAME}"])
+        prompt = self.__strip_input(prompt, ['/picgen', f"@{BOT_USERNAME}"])
 
         # Generate image with Dalle class
         dalle = Dalle(self.openai_api_key)
-        image_url = dalle.generate_image(prompt)
+
+        try:
+            image_url = dalle.generate_image(prompt)
+        except Exception as e:
+            logging.error(f"Error generating image: ")
+            self.__send_text_reply(update, context, f"{e}")
+            return
 
         # Download image into memory
-        print(image_url)
         image = self.__download_image_into_memory(image_url)
 
+        # Get username
+        username = self.__get_username(update)
+        # Create caption
+        caption = f"@{username}:{prompt}"
+
         # Send image
-        self.__send_image_message(update, context, image)
+        self.__send_image_reply(update, context, image)
         logging.debug('Exiting: __generate_handler')
 
     def __variation_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: __variation_handler')
+
+        dalle = Dalle(self.openai_api_key)
+
         # Get image from message
-        image = self.__get_image_from_message(update)
-        logging.debug(f"Image: {image}")
+        image_file = self.__get_image_from_message(update)
+
+        image_jpg = self.__download_image_into_memory(image_file.file_path)
+        image_png = dalle.convert_to_png(image_jpg)
 
         # Generate image variation with Dalle class
-        dalle = Dalle(self.openai_api_key)
-        image_url = dalle.generate_image_variation(image)
+        try:
+            image_url = dalle.generate_image_variation(image_png)
+        except Exception as e:
+            logging.error(f"Error generating image: ")
+            self.__send_text_reply(update, context, f"{e}")
+            return
 
         # Download image into memory
         image = self.__download_image_into_memory(image_url)
 
-        # Send image
-        self.__send_image_message(update, context, image)
+        # Get username
+        username = self.__get_username(update)
+        # Create caption
+        caption = f"Photo variation for @{username}"
+        
+        self.__send_image_reply(update, context, image_url)
         logging.debug('Exiting: __variation_handler')
     
     def __description_handler(self, update: Update, context: CallbackContext):
@@ -195,7 +242,8 @@ class RequestHandler:
     
     def variation_command_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: variation_command_handler')
-        threading.Thread(target=self.__variation_handler, args=(update, context)).start()
+        if update.message.caption and '/variation' in update.message.caption:
+            threading.Thread(target=self.__variation_handler, args=(update, context)).start()
         logging.debug('Exiting: variation_command_handler')
 
     def description_command_handler(self, update: Update, context: CallbackContext):
