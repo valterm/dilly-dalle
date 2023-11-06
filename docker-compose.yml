@@ -5,6 +5,7 @@ services:
     build: .
     restart: always
     environment:
+    - "LOGGING_LEVEL=INFO" # DEBUG, INFO, WARNING, ERROR, CRITICAL
     - "TELEGRAM_BOT_TOKEN="
     - "OPENAI_API_TOKEN="
     - "BOT_USERNAME="
