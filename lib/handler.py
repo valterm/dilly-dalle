@@ -1,4 +1,4 @@
-from telegram import Update, User
+from telegram import Update, User, Message
 from telegram.ext import Updater,CallbackContext
 from .dalle import *
 from .gpt import *
@@ -95,6 +95,13 @@ class RequestHandler:
         photo = message.photo[-1]
         image = photo.get_file()
         return image
+    
+    def __get_image_from_reply(self, message: Message):
+        logging.debug('Entering: __get_image_from_reply')
+        # Get image from message
+        photo = message.photo[-1]
+        image = photo.get_file()
+        return image
 
     def __generate_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: __generate_handler')
@@ -124,16 +131,25 @@ class RequestHandler:
         self.__send_image_reply(update, context, image)
         logging.debug('Exiting: __generate_handler')
 
-    def __variation_handler(self, update: Update, context: CallbackContext):
+    def __variation_handler(self, update: Update, context: CallbackContext, request_type: str):
         logging.debug('Entering: __variation_handler')
 
         dalle = Dalle(self.openai_api_key)
 
         # Get image from message
-        image_file = self.__get_image_from_message(update)
+        try:
+            if request_type == 'photo':
+                image_file = self.__get_image_from_message(update)
+            elif request_type == 'reply':
+                image_file = self.__get_image_from_reply(update.message.reply_to_message)
 
-        image_jpg = self.__download_image_into_memory(image_file.file_path)
-        image_png = dalle.convert_to_png(image_jpg)
+            image_jpg = self.__download_image_into_memory(image_file.file_path)
+            image_png = dalle.convert_to_png(image_jpg)
+        
+        except Exception as e:
+            logging.error(f"Error getting image: ")
+            self.__send_text_reply(update, context, f"There was an error processing the image:\n{e}")
+            return
 
         # Generate image variation with Dalle class
         try:
@@ -165,7 +181,7 @@ class RequestHandler:
         description = gpt.generate_description(prompt)
 
         # Send description
-        self.__send_text_message(update, context, description)
+        self.__send_text_reply(update, context, description)
 
         logging.debug('Exiting: __description_handler')
     
@@ -180,7 +196,7 @@ class RequestHandler:
         rephrased_prompt = gpt.rephrase_prompt(prompt)
 
         # Send rephrased prompt
-        self.__send_text_message(update, context, rephrased_prompt)
+        self.__send_text_reply(update, context, rephrased_prompt)
 
         logging.debug('Exiting: __rephrase_handler')
     
@@ -240,11 +256,22 @@ class RequestHandler:
         threading.Thread(target=self.__generate_handler, args=(update, context)).start()
         logging.debug('Exiting: picgen_command_handler')
     
-    def variation_command_handler(self, update: Update, context: CallbackContext):
-        logging.debug('Entering: variation_command_handler')
+    def photo_filter_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: photo_handler')
         if update.message.caption and '/variation' in update.message.caption:
-            threading.Thread(target=self.__variation_handler, args=(update, context)).start()
-        logging.debug('Exiting: variation_command_handler')
+            threading.Thread(target=self.__variation_handler, args=(update, context, 'photo')).start()
+        logging.debug('Exiting: photo_handler')
+
+    def variation_reply_command_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: variation_reply_command_handler')
+        if update.message.reply_to_message:
+            if update.message.reply_to_message.photo:
+                threading.Thread(target=self.__variation_handler, args=(update, context, 'reply')).start()
+            else:
+                self.__send_text_reply(update, context, "Please either reply to an image with /variation or send a photo with /variation in the caption.")
+        else:
+            self.__send_text_reply(update, context, "Please either reply to an image with /variation or send a photo with /variation in the caption.")
+        logging.debug('Exiting: variation_reply_command_handler')
 
     def description_command_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: description_command_handler')
