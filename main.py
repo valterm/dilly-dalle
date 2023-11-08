@@ -24,7 +24,7 @@ def main():
     picgen_handler = CommandHandler('picgen', command_handler.picgen_command_handler)
     variation_reply_handler = CommandHandler('variation', command_handler.variation_reply_command_handler)
     photo_filter_handler = (MessageHandler(Filters.photo, command_handler.photo_filter_handler))
-    describe_handler = CommandHandler('describe', command_handler.description_command_handler)
+    describe_handler = CommandHandler('describe', command_handler.prototype_command_handler)
     rephrase_handler = CommandHandler('rephrase', command_handler.rephrase_command_handler)
     unknown_handler = MessageHandler(Filters.command, command_handler.unknown_command_handler)
 

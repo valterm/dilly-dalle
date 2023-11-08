@@ -287,3 +287,8 @@ class RequestHandler:
         logging.debug('Entering: unknown_command_handler')
         threading.Thread(target=self.__unknown_handler, args=(update, context)).start()
         logging.debug('Exiting: unknown_command_handler')
+
+    def prototype_command_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: prototype_command_handler')
+        threading.Thread(target=self.__prototype_handler, args=(update, context)).start()
+        logging.debug('Exiting: prototype_command_handler')
