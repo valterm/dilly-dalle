@@ -206,7 +206,7 @@ class RequestHandler:
         help_message = f"Hi @{self.__get_username(update)}! I'm {BOT_USERNAME} and I can generate images from text prompts. Here are the commands I understand:\n\n"
         help_message += f"1. /picgen <text prompt> - Generates an image from a text prompt.\n"
         help_message += f"2. /variation <image> - Generates an image variation from an image.\n"
-        help_message += f"3. /describe <text prompt> - Generates a description from a text prompt.\n"
+        help_message += f"DISABLED 3. /describe <text prompt> - Generates a description from a text prompt.\n"
         help_message += f"4. /rephrase <text prompt> - Rephrases a text prompt.\n"
         help_message += f"5. /help - Displays this help message.\n\n"
         help_message += f"Please note that I'm still in beta and I may not work as expected. If you encounter any issues, please report them to on the github {GITHUB_REPO}.\n"
