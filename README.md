@@ -1,28 +1,18 @@
 
   
 
-# DILLY-DALLE: A Telegram Bot for Interacting with OpenAI's APIs
+# DILLY-DALLE
 
   
 
 ## Project Description
 
-DILLY-DALLE is a Telegram bot designed to interface with OpenAI's GPT and DALL-E APIs. Its primary function is image generation, leveraging the capabilities of the DALL-E model. This bot offers a unique interaction platform for users on Telegram to explore the potentials of AI-powered image creation and text-based AI interactions.
-
-  
-
-## Features
-
--  **Image Generation**: Utilize DALL-E API to generate images based on user inputs.
-
--  **Text Interaction**: Engage with GPT models for various text-based tasks.
-
--  **Telegram Integration**: Seamlessly handle user requests and interactions through the Telegram interface.
+A telegram bot to interact with the DALL-E API to generate images and variations.
 
   
 ## Running the bot
 
-The bot is available in [docker hub](https://hub.docker.com/repository/docker/valtimalti/dilly-dalle/general). Please refer to the repositroy there for the latest image version - the bot is still in development, with no latest release right now.
+The bot is available in [docker hub](https://hub.docker.com/r/valtimalti/dilly-dalle). Please refer to the repositroy there for the latest image version - the bot is still in development, with no latest release right now.
 
 ```
 version: "3.9"
