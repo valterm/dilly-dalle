@@ -3,6 +3,7 @@ from telegram.ext import Updater,CallbackContext
 from .dalle import *
 from .gpt import *
 from .globals import *
+from .stable_diffusion import *
 import threading
 import requests
 from io import BytesIO
@@ -43,6 +44,15 @@ class RequestHandler:
             return byte_array
         else:
             return 1
+    
+    def __read_image_into_memory(self, image_path):
+        logging.debug('Entering: __read_image_into_memory')
+        # Read image into memory
+        with open(image_path, "rb") as file:
+            image = file.read()
+            byte_stream = BytesIO(image)
+            byte_array = byte_stream.getvalue()
+            return byte_array
     
     def __send_text_message(self, update: Update, context: CallbackContext, message: str):
         logging.debug('Entering: __send_text_message')
@@ -240,6 +250,33 @@ class RequestHandler:
         # Send prototype message
         self.__send_text_message(update, context, prototype_message)
 
+    def __sd_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: __sd_handler')
+
+        prompt = update.message.text
+        prompt = self.__strip_input(prompt, ['/fancy', f"@{BOT_USERNAME}"])
+
+        # Get username
+        username = self.__get_username(update)
+        # Create caption
+        caption = f"@{username}:{prompt}"
+
+        # Generate image with Stable Diffusion Class
+        sd = StableDiffusion(STABLE_DIFFUSION_URL)
+
+        try:
+            img = sd.generate_image(prompt=prompt, caption=caption)
+        except Exception as e:
+            logging.error(f"Error generating image: ")
+            self.__send_text_reply(update, context, f"{e}")
+            return e
+
+        image = self.__read_image_into_memory(f"../images/{img}")
+
+        # Send image
+        self.__send_image_reply(update, context, image)
+        logging.debug('Exiting: __sd_handler')
+
     # Create command handlers
     def start_command_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: start_command_handler')
@@ -292,3 +329,8 @@ class RequestHandler:
         logging.debug('Entering: prototype_command_handler')
         threading.Thread(target=self.__prototype_handler, args=(update, context)).start()
         logging.debug('Exiting: prototype_command_handler')
+
+    def sd_command_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: sd_command_handler')
+        threading.Thread(target=self.__sd_handler, args=(update, context)).start()
+        logging.debug('Exiting: sd_command_handler')
