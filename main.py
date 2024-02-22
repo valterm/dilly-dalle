@@ -26,7 +26,9 @@ def main():
     photo_filter_handler = (MessageHandler(Filters.photo, command_handler.photo_filter_handler))
     describe_handler = CommandHandler('describe', command_handler.prototype_command_handler)
     rephrase_handler = CommandHandler('rephrase', command_handler.rephrase_command_handler)
-    sd_handler = CommandHandler('fancy', command_handler.sd_command_handler)
+    sd_generate_handler = CommandHandler('fancy', command_handler.sd_generate_command_handler)
+    # sd_variation_handler = CommandHandler('redo', command_handler.sd_variation_command_handler)
+    sd_variation_reply_handler = CommandHandler('redo', command_handler.sd_variation_reply_command_handler)
     unknown_handler = MessageHandler(Filters.command, command_handler.unknown_command_handler)
 
     # Add handlers to dispatcher
@@ -37,7 +39,8 @@ def main():
     dispatcher.add_handler(photo_filter_handler)
     dispatcher.add_handler(describe_handler)
     dispatcher.add_handler(rephrase_handler)
-    dispatcher.add_handler(sd_handler)
+    dispatcher.add_handler(sd_generate_handler)
+    dispatcher.add_handler(sd_variation_reply_handler)
     dispatcher.add_handler(unknown_handler)
 
     # Start the bot

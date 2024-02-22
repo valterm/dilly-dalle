@@ -17,10 +17,11 @@ class RequestHandler:
     def __strip_input(self, input: str, experssions: list):
         logging.debug('Entering: __strip_input')
         # Strip input
-        for e in experssions:
-            input = input.replace(e, "")
-        return input
-    
+        if input:
+            for e in experssions:
+                input = input.replace(e, "")
+            return input
+
     def __get_username(self, update: Update):
         # Get user
         user = update.effective_user
@@ -44,8 +45,8 @@ class RequestHandler:
             return byte_array
         else:
             return 1
-    
-    def __read_image_into_memory(self, image_path):
+
+    def __read_image_into_memory(self, image_path: str):
         logging.debug('Entering: __read_image_into_memory')
         # Read image into memory
         with open(image_path, "rb") as file:
@@ -53,7 +54,7 @@ class RequestHandler:
             byte_stream = BytesIO(image)
             byte_array = byte_stream.getvalue()
             return byte_array
-    
+
     def __send_text_message(self, update: Update, context: CallbackContext, message: str):
         logging.debug('Entering: __send_text_message')
         # Send message
@@ -64,7 +65,7 @@ class RequestHandler:
             # parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
         )
         logging.debug('Exiting: __send_text_message')
-    
+
     def __send_text_reply(self, update: Update, context: CallbackContext, message: str):
         logging.debug('Entering: __send_reply_text')
         # Send message
@@ -75,7 +76,7 @@ class RequestHandler:
             # parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
         )
         logging.debug('Exiting: __send_reply_text')
-    
+
     def __send_image_message(self, update: Update, context: CallbackContext, image: bytes, caption=None):
         logging.debug('Entering: __send_image_message')
         # Send image
@@ -97,7 +98,6 @@ class RequestHandler:
         )
         logging.debug('Exiting: __send_image_message')
 
-        
     def __get_image_from_message(self, update: Update):
         logging.debug('Entering: __get_image_from_message')
         # Get image from message
@@ -105,13 +105,20 @@ class RequestHandler:
         photo = message.photo[-1]
         image = photo.get_file()
         return image
-    
+
     def __get_image_from_reply(self, message: Message):
         logging.debug('Entering: __get_image_from_reply')
         # Get image from message
         photo = message.photo[-1]
         image = photo.get_file()
         return image
+
+    def __get_image_caption(self, update: Update):
+        logging.debug('Entering: __get_image_caption')
+        # Get image caption
+        image = update.message.photo[-1]
+        caption = image.caption
+        return caption
 
     def __generate_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: __generate_handler')
@@ -155,7 +162,7 @@ class RequestHandler:
 
             image_jpg = self.__download_image_into_memory(image_file.file_path)
             image_png = dalle.convert_to_png(image_jpg)
-        
+
         except Exception as e:
             logging.error(f"Error getting image: ")
             self.__send_text_reply(update, context, f"There was an error processing the image:\n{e}")
@@ -176,10 +183,10 @@ class RequestHandler:
         username = self.__get_username(update)
         # Create caption
         caption = f"Photo variation for @{username}"
-        
+
         self.__send_image_reply(update, context, image_url)
         logging.debug('Exiting: __variation_handler')
-    
+
     def __description_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: __description_handler')
 
@@ -194,7 +201,7 @@ class RequestHandler:
         self.__send_text_reply(update, context, description)
 
         logging.debug('Exiting: __description_handler')
-    
+
     def __rephrase_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: __rephrase_handler')
 
@@ -209,7 +216,7 @@ class RequestHandler:
         self.__send_text_reply(update, context, rephrased_prompt)
 
         logging.debug('Exiting: __rephrase_handler')
-    
+
     def __help_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: __help_handler')
         # Create help message describing the commands
@@ -220,12 +227,12 @@ class RequestHandler:
         help_message += f"4. /rephrase <text prompt> - Rephrases a text prompt.\n"
         help_message += f"5. /help - Displays this help message.\n\n"
         help_message += f"Please note that I'm still in beta and I may not work as expected. If you encounter any issues, please report them to github @ {GITHUB_REPO}.\n"
-        
+
         # Send help message
         self.__send_text_message(update, context, help_message)
 
         logging.debug('Exiting: __help_handler')
-    
+
     def __start_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: __start_handler')
         # Create start message
@@ -250,7 +257,7 @@ class RequestHandler:
         # Send prototype message
         self.__send_text_message(update, context, prototype_message)
 
-    def __sd_handler(self, update: Update, context: CallbackContext):
+    def __sd_generate_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: __sd_handler')
 
         prompt = update.message.text
@@ -258,14 +265,12 @@ class RequestHandler:
 
         # Get username
         username = self.__get_username(update)
-        # Create caption
-        caption = f"@{username}:{prompt}"
 
         # Generate image with Stable Diffusion Class
         sd = StableDiffusion(STABLE_DIFFUSION_URL)
 
         try:
-            img = sd.generate_image(prompt=prompt, caption=caption)
+            img = sd.generate_image(prompt=prompt, username=username)
         except Exception as e:
             logging.error(f"Error generating image: ")
             self.__send_text_reply(update, context, f"{e}")
@@ -276,6 +281,40 @@ class RequestHandler:
         # Send image
         self.__send_image_reply(update, context, image)
         logging.debug('Exiting: __sd_handler')
+
+    def __sd_variation_handler(self, update: Update, context: CallbackContext, request_type: str):
+        logging.debug('Entering: __change_handler')
+
+        try:
+            if request_type == 'photo':
+                image_file = self.__get_image_from_message(update)
+                prompt = update.message.caption
+            elif request_type == 'reply':
+                image_file = self.__get_image_from_reply(update.message.reply_to_message)
+                prompt = update.message.text
+
+            image_jpg = self.__download_image_into_memory(image_file.file_path)
+
+        except Exception as e:
+            logging.error(f"Error getting image: ")
+            self.__send_text_reply(update, context, f"There was an error processing the image:\n{e}")
+            return
+
+        # Get username
+        username = self.__get_username(update)
+
+        # Get prompt
+        prompt = self.__strip_input(prompt, ['redo', f"@{BOT_USERNAME}"])
+
+
+        sd = StableDiffusion(STABLE_DIFFUSION_URL)
+
+        img = sd.generate_image_variation(image=image_jpg, prompt=prompt, username=username)
+        image = self.__read_image_into_memory(f"../images/{img}")
+
+        # Send image
+        self.__send_image_reply(update, context, image)
+        logging.debug('Exiting: __change_handler')
 
     # Create command handlers
     def start_command_handler(self, update: Update, context: CallbackContext):
@@ -292,11 +331,15 @@ class RequestHandler:
         logging.debug('Entering: picgen_command_handler')
         threading.Thread(target=self.__generate_handler, args=(update, context)).start()
         logging.debug('Exiting: picgen_command_handler')
-    
+
     def photo_filter_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: photo_handler')
         if update.message.caption and '/variation' in update.message.caption:
             threading.Thread(target=self.__variation_handler, args=(update, context, 'photo')).start()
+        elif update.message.caption and '/redo' in update.message.caption:
+            logging.debug(update)
+            threading.Thread(target=self.__sd_variation_handler, args=(update, context, 'photo')).start()
+
         logging.debug('Exiting: photo_handler')
 
     def variation_reply_command_handler(self, update: Update, context: CallbackContext):
@@ -319,7 +362,7 @@ class RequestHandler:
         logging.debug('Entering: rephrase_command_handler')
         threading.Thread(target=self.__rephrase_handler, args=(update, context)).start()
         logging.debug('Exiting: rephrase_command_handler')
-    
+
     def unknown_command_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: unknown_command_handler')
         threading.Thread(target=self.__unknown_handler, args=(update, context)).start()
@@ -330,7 +373,18 @@ class RequestHandler:
         threading.Thread(target=self.__prototype_handler, args=(update, context)).start()
         logging.debug('Exiting: prototype_command_handler')
 
-    def sd_command_handler(self, update: Update, context: CallbackContext):
+    def sd_generate_command_handler(self, update: Update, context: CallbackContext):
         logging.debug('Entering: sd_command_handler')
-        threading.Thread(target=self.__sd_handler, args=(update, context)).start()
+        threading.Thread(target=self.__sd_generate_handler, args=(update, context)).start()
         logging.debug('Exiting: sd_command_handler')
+
+    def sd_variation_reply_command_handler(self, update: Update, context: CallbackContext):
+        logging.debug('Entering: change_command_handler')
+        if update.message.reply_to_message:
+            if update.message.reply_to_message.photo:
+                threading.Thread(target=self.__sd_variation_handler, args=(update, context, 'reply')).start()
+            else:
+                self.__send_text_reply(update, context, "Please either reply to an image with /variation or send a photo with /variation in the caption.")
+        else:
+            self.__send_text_reply(update, context, "Please either reply to an image with /variation or send a photo with /variation in the caption.")
+        logging.debug('Exiting: change_command_handler')
